@@ -25,6 +25,7 @@ class MinuteOfHour(TimeFeature):
     def __call__(self, index: pd.DatetimeIndex) -> np.ndarray:
         return index.minute / 59.0 - 0.5
 
+# 将当前的小时(0-23中的一个)转化为[-0.5, 0.5]中的一个值
 class HourOfDay(TimeFeature):
     """Hour of day encoded as value between [-0.5, 0.5]"""
     def __call__(self, index: pd.DatetimeIndex) -> np.ndarray:
@@ -89,8 +90,13 @@ def time_features_from_frequency_str(freq_str: str) -> List[TimeFeature]:
         ],
     }
 
+    # 将'h'包装成一个pandas中的offset.Hour类
     offset = to_offset(freq_str)
 
+    # 遍历features_by_offsets字典
+    # 若当前offset和offset_type相匹配，那么将该字典中对应的列表中的类返回
+    # 例如Hour就会返回[HourOfDay, DayOfWeek, DayOfMonth, DayOfYear]
+    # 这四个东西其实就是对当前的时间来踢去特征（包括当前时间在当天的什么时候、当天在这个星期/这个月/这年中的什么时候）
     for offset_type, feature_classes in features_by_offsets.items():
         if isinstance(offset, offset_type):
             return [cls() for cls in feature_classes]
@@ -133,6 +139,7 @@ def time_features(dates, timeenc=1, freq='h'):
 
     *minute returns a number from 0-3 corresponding to the 15 minute period it falls into.
     """
+    # 也即将时间数据按照指定的freq的间隔来提取出来
     if timeenc==0:
         dates['month'] = dates.date.apply(lambda row:row.month,1)
         dates['day'] = dates.date.apply(lambda row:row.day,1)
@@ -147,5 +154,14 @@ def time_features(dates, timeenc=1, freq='h'):
         }
         return dates[freq_map[freq.lower()]].values
     if timeenc==1:
+        # PS：dates的格式和传进来的df_stamp一样，都是pandas.DataFrame格式；
+        # 而dates.date则为pandas.core.series.Series格式（因为取出了dates数据中的date这一列数据）
+        # 而dates.data.values则为numpy.ndarray格式了
+        # 此时再对dates.data.values做pd.to_datetime则将其变成了pandas.core.indexes.datetimes.DatetimeIndex类了？
         dates = pd.to_datetime(dates.date.values)
+        
+        # 注1：np.vstack用法：https://blog.csdn.net/u011699626/article/details/117458115（vstack也即将多个数组垂直堆叠在一起）
+        # 我们也以"Hour"为例，那么这里的feat会分别返回[HourOfDay(), DayOfWeek(), DayOfMonth(), DayOfYear()]四个类的实例
+        # 然后用这个四个类的实例来调用dates，会得到四个Int64Index或Float64Index类的数据。(DatetimeIndex类的dates数据会包含hour、day、week、month等属性的)
+        # 再用np.vstack将他们堆叠起来，
         return np.vstack([feat(dates) for feat in time_features_from_frequency_str(freq)]).transpose(1,0)

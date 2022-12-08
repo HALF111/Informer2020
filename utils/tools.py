@@ -59,12 +59,15 @@ class StandardScaler():
         self.std = 1.
     
     def fit(self, data):
+        # 计算data的均值和标准差
         self.mean = data.mean(0)
         self.std = data.std(0)
 
     def transform(self, data):
+        # 如果data是tensor，那么mean和std也转成tensor；如果data是其他（如ndarray/dataframe）格式的数据的话，那么mean和std也是和data格式保持一致
         mean = torch.from_numpy(self.mean).type_as(data).to(data.device) if torch.is_tensor(data) else self.mean
         std = torch.from_numpy(self.std).type_as(data).to(data.device) if torch.is_tensor(data) else self.std
+        # 用mean和std来做归一化操作
         return (data - mean) / std
 
     def inverse_transform(self, data):
@@ -73,4 +76,5 @@ class StandardScaler():
         if data.shape[-1] != mean.shape[-1]:
             mean = mean[-1:]
             std = std[-1:]
+        # 反向将归一化后的数据重新算回去
         return (data * std) + mean

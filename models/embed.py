@@ -7,6 +7,8 @@ import math
 class PositionalEmbedding(nn.Module):
     def __init__(self, d_model, max_len=5000):
         super(PositionalEmbedding, self).__init__()
+
+        # PositionalEmbedding和Transformer中的位置编码基本是一样的，也是用sin和cos来编码
         # Compute the positional encodings once in log space.
         pe = torch.zeros(max_len, d_model).float()
         pe.require_grad = False
@@ -18,7 +20,7 @@ class PositionalEmbedding(nn.Module):
         pe[:, 1::2] = torch.cos(position * div_term)
 
         pe = pe.unsqueeze(0)
-        self.register_buffer('pe', pe)
+        self.register_buffer('pe', pe)  # 感觉像是把pe的值存下来，避免每次调用时的重复计算？
 
     def forward(self, x):
         return self.pe[:, :x.size(1)]
@@ -27,8 +29,12 @@ class TokenEmbedding(nn.Module):
     def __init__(self, c_in, d_model):
         super(TokenEmbedding, self).__init__()
         padding = 1 if torch.__version__>='1.5.0' else 2
+
+        # 做一个kernel为3的一维的卷积？
         self.tokenConv = nn.Conv1d(in_channels=c_in, out_channels=d_model, 
                                     kernel_size=3, padding=padding, padding_mode='circular')
+        
+        # 对这个Conv1d模块做kaiming_normal_的初始化？
         for m in self.modules():
             if isinstance(m, nn.Conv1d):
                 nn.init.kaiming_normal_(m.weight,mode='fan_in',nonlinearity='leaky_relu')
@@ -88,6 +94,8 @@ class TimeFeatureEmbedding(nn.Module):
 
         freq_map = {'h':4, 't':5, 's':6, 'm':1, 'a':1, 'w':2, 'd':3, 'b':3}
         d_inp = freq_map[freq]
+
+        # 这里的embedding就是一个简单的Linear线性层
         self.embed = nn.Linear(d_inp, d_model)
     
     def forward(self, x):
@@ -104,6 +112,10 @@ class DataEmbedding(nn.Module):
         self.dropout = nn.Dropout(p=dropout)
 
     def forward(self, x, x_mark):
+        # 将三个部分的embedding结果加在一起，所以三者的embedding后的维度必须要相同，且都为d_model（预设的超参数）
+        # 前两个对x做embedding，最后一个对x_mark做embedding
         x = self.value_embedding(x) + self.position_embedding(x) + self.temporal_embedding(x_mark)
+        # 然后再对embedding结果做一次dropout
+        x = self.dropout(x)
         
-        return self.dropout(x)
+        return x

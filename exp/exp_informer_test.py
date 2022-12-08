@@ -18,9 +18,9 @@ import time
 import warnings
 warnings.filterwarnings('ignore')
 
-class Exp_Informer(Exp_Basic):
+class Exp_Informer_Test(Exp_Basic):
     def __init__(self, args):
-        super(Exp_Informer, self).__init__(args)
+        super(Exp_Informer_Test, self).__init__(args)
     
     def _build_model(self):
         model_dict = {
@@ -143,6 +143,9 @@ class Exp_Informer(Exp_Basic):
         return total_loss
 
     def train(self, setting):
+
+        self.model.cpu()
+
         # 获取train/val/test的data和DataLoader
         train_data, train_loader = self._get_data(flag = 'train')
         vali_data, vali_loader = self._get_data(flag = 'val')
@@ -167,6 +170,9 @@ class Exp_Informer(Exp_Basic):
             iter_count = 0
             train_loss = []
             
+            self.model.cpu()
+            self.model.to(self.device)
+
             self.model.train()  # 将模型设置为train模式
             epoch_time = time.time()
 
@@ -207,6 +213,12 @@ class Exp_Informer(Exp_Basic):
             # 打印时间信息
             print("Epoch: {} cost time: {}".format(epoch + 1, time.time() - epoch_time))
 
+            torch.cuda.empty_cache()
+            torch.cuda.empty_cache()
+            torch.cuda.empty_cache()
+            self.model.cpu()
+            self.model.to(self.device)
+
             # 计算train、val和test的loss
             train_loss = np.average(train_loss)
             vali_loss = self.vali(vali_data, vali_loader, criterion)  # 调用self.vali函数计算val集的loss
@@ -223,6 +235,9 @@ class Exp_Informer(Exp_Basic):
             
             # 调整学习率
             adjust_learning_rate(model_optim, epoch+1, self.args)
+
+            # self.model.cpu()
+            torch.cuda.empty_cache()
         
         # 结束所有吧epoch的训练之后，我们将权重文件保存下来
         best_model_path = path + '/' + 'checkpoint.pth'
@@ -238,13 +253,30 @@ class Exp_Informer(Exp_Basic):
         
         preds = []
         trues = []
+
+        model_optim = self._select_optimizer()  # 使用Adam优化器
+        criterion =  self._select_criterion()  # 使用MSELoss
         
-        for i, (batch_x, batch_y, batch_x_mark, batch_y_mark) in enumerate(test_loader):
+        self.model.train()
+
+        for i, (batch_x, batch_y, batch_x_mark, batch_y_mark) in enumerate(test_loader):            
+            model_optim.zero_grad()
+
             pred, true = self._process_one_batch(
                 test_data, batch_x, batch_y, batch_x_mark, batch_y_mark)
+            
+            loss = criterion(pred, true)
+
             preds.append(pred.detach().cpu().numpy())
             trues.append(true.detach().cpu().numpy())
 
+            if (i+1) % 20 == 0:
+                print("\titers: {0}, epoch: {1} | loss: {2:.7f}".format(i + 1, 1, loss.item()))
+            
+            loss.backward()
+            model_optim.step()
+        
+        
         preds = np.array(preds)
         trues = np.array(trues)
         print('test shape:', preds.shape, trues.shape)
@@ -259,17 +291,19 @@ class Exp_Informer(Exp_Basic):
         if not os.path.exists(folder_path):
             os.makedirs(folder_path)
 
-        # 这里分别计算了mae、mse、rmse、mape、mspe等个参数，且全都是自己实现的，在metrics.py文件里面
-        # 而训练时采用的loss则是nn自带的MSELoss函数
+        # 这里分别计算了mae、mse、rmse、mape、mspe等个参数，且全都是自己实现的，在metrics.py里面
+        # 而训练时采用的loss则是nn自带的MSELoss的
         # 我们这边计算MSE则是使用np.mean((pred-true)**2)
-        # 但实际上，这二者除了一个传入的是tensor、另一个传入的是np.array之外，并没有太大区别
-        # 然后我们自己实现的方法其实也正好对应于在nn.MSELoss中使用reduction = 'mean'的结果
+        # 但实际上，这二者除了一个传入的是tensor，另一个传入的是np.array之外并没有太大区别
+        # 然后我们自己实现的对应于为nn.MSELoss中的：reduction = 'mean'
         mae, mse, rmse, mape, mspe = metric(preds, trues)
         print('mse:{}, mae:{}'.format(mse, mae))
 
-        np.save(folder_path+'metrics.npy', np.array([mae, mse, rmse, mape, mspe]))
-        np.save(folder_path+'pred.npy', preds)
-        np.save(folder_path+'true.npy', trues)
+        # np.save(folder_path+'metrics.npy', np.array([mae, mse, rmse, mape, mspe]))
+        # np.save(folder_path+'pred.npy', preds)
+        # np.save(folder_path+'true.npy', trues)
+
+        self.model.eval()
 
         return
 
@@ -324,7 +358,7 @@ class Exp_Informer(Exp_Basic):
         dec_inp = torch.cat([batch_y[:, :self.args.label_len, :], dec_inp], dim=1).float().to(self.device)
 
         # encoder - decoder
-        # 这里则是正式地调用model的forward函数进行调用模型了
+        # 这里则是正式地调用model的forward函数进行调用了
         if self.args.use_amp:
             with torch.cuda.amp.autocast():
                 if self.args.output_attention:

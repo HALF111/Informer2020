@@ -15,16 +15,21 @@ class Informer(nn.Module):
                 output_attention = False, distil=True, mix=True,
                 device=torch.device('cuda:0')):
         super(Informer, self).__init__()
+
         self.pred_len = out_len
         self.attn = attn
         self.output_attention = output_attention
 
-        # Encoding
+        # Embedding层
         self.enc_embedding = DataEmbedding(enc_in, d_model, embed, freq, dropout)
         self.dec_embedding = DataEmbedding(dec_in, d_model, embed, freq, dropout)
+
         # Attention
         Attn = ProbAttention if attn=='prob' else FullAttention
+
         # Encoder
+        # 其中包含e_layers个EncoderLayer层，和e_layers-1个ConvLayer层
+        # 其中EncoderLayer中还需要传入一个AttentionLayer层
         self.encoder = Encoder(
             [
                 EncoderLayer(
@@ -33,7 +38,7 @@ class Informer(nn.Module):
                     d_model,
                     d_ff,
                     dropout=dropout,
-                    activation=activation
+                    activation=activation  # 这里为relu或gelu
                 ) for l in range(e_layers)
             ],
             [
@@ -41,8 +46,10 @@ class Informer(nn.Module):
                     d_model
                 ) for l in range(e_layers-1)
             ] if distil else None,
+            # 最后再加上一个LayerNorm层
             norm_layer=torch.nn.LayerNorm(d_model)
         )
+
         # Decoder
         self.decoder = Decoder(
             [
@@ -60,13 +67,17 @@ class Informer(nn.Module):
             ],
             norm_layer=torch.nn.LayerNorm(d_model)
         )
+        
         # self.end_conv1 = nn.Conv1d(in_channels=label_len+out_len, out_channels=out_len, kernel_size=1, bias=True)
         # self.end_conv2 = nn.Conv1d(in_channels=d_model, out_channels=c_out, kernel_size=1, bias=True)
         self.projection = nn.Linear(d_model, c_out, bias=True)
         
     def forward(self, x_enc, x_mark_enc, x_dec, x_mark_dec, 
                 enc_self_mask=None, dec_self_mask=None, dec_enc_mask=None):
+        
+        # 先对输入数据做一次embedding
         enc_out = self.enc_embedding(x_enc, x_mark_enc)
+        # 将embedding得到的结果送入encoder中作为输入
         enc_out, attns = self.encoder(enc_out, attn_mask=enc_self_mask)
 
         dec_out = self.dec_embedding(x_dec, x_mark_dec)
@@ -78,7 +89,7 @@ class Informer(nn.Module):
         if self.output_attention:
             return dec_out[:,-self.pred_len:,:], attns
         else:
-            return dec_out[:,-self.pred_len:,:] # [B, L, D]
+            return dec_out[:,-self.pred_len:,:]  # [B, L, D]
 
 
 class InformerStack(nn.Module):
