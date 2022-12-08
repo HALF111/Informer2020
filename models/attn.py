@@ -16,10 +16,14 @@ class FullAttention(nn.Module):
         self.dropout = nn.Dropout(attention_dropout)
         
     def forward(self, queries, keys, values, attn_mask):
-        B, L, H, E = queries.shape
-        _, S, _, D = values.shape
+        B, L, H, E = queries.shape  # 此时的维度为[32, 72, 8, 64] -> 本来应该是[32, 72, 512]，但是在AttetionLayer层中对head进行了提取
+        _, S, _, D = values.shape  # 此时的维度为[32, 48, 8, 64] -> 这里的48是因为encoder中每经过一层长度就会减少一半，所以开始的86变成了现在的48
         scale = self.scale or 1./sqrt(E)
 
+        # torch.einsum简介：https://zhuanlan.zhihu.com/p/434232512
+        # 也可以参考：https://zhuanlan.zhihu.com/p/547157325
+        # 这里就是将blhe的queries和bshe的keys，在第长度的维度（第二维）上做点积
+        # 按照原来的方法，需要先转置、再做matmul、再转置回来；而现在一个einsum函数直接解决问题了
         scores = torch.einsum("blhe,bshe->bhls", queries, keys)
         if self.mask_flag:
             if attn_mask is None:
@@ -27,9 +31,13 @@ class FullAttention(nn.Module):
 
             scores.masked_fill_(attn_mask.mask, -np.inf)
 
+        # 计算好Q和K的点积之后，先除以scale，再在最后一维上计算softmax，再经过一个dropout，便得到了注意力权重矩阵A
         A = self.dropout(torch.softmax(scale * scores, dim=-1))
+
+        # 然后再用注意力权重A和值values一起计算，得到最终的注意力值V
         V = torch.einsum("bhls,bshd->blhd", A, values)
         
+        # 再对V做contiguous之后再返回
         if self.output_attention:
             return (V.contiguous(), A)
         else:
@@ -45,6 +53,7 @@ class ProbAttention(nn.Module):
         self.mask_flag = mask_flag
         self.output_attention = output_attention
 
+        # PS：在ProbAttention中，其实是用不到dropout层的；只有FullAttention中才会用到
         self.dropout = nn.Dropout(attention_dropout)
 
     def _prob_QK(self, Q, K, sample_k, n_top):  # n_top: c*ln(L_q)

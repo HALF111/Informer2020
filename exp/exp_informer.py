@@ -337,13 +337,17 @@ class Exp_Informer(Exp_Basic):
             if self.args.output_attention:
                 outputs = self.model(batch_x, batch_x_mark, dec_inp, batch_y_mark)[0]
             else:
-                outputs = self.model(batch_x, batch_x_mark, dec_inp, batch_y_mark)
+                outputs = self.model(batch_x, batch_x_mark, dec_inp, batch_y_mark)  # 这里返回的结果为[B, L, D]，例如[32, 24, 12]
         
         if self.args.inverse:
             outputs = dataset_object.inverse_transform(outputs)
         
         f_dim = -1 if self.args.features=='MS' else 0
 
+        # bacth_y其实就是对应的真实值，
+        # 但是我们同样也取出后面的pred_len长度的内容，而将前面label_len长度的部分给扔掉
+        # 另外，如果是MS/由多变量预测单变量的话，那么f_dim为-1，表示只取最后一维的特征返回
         batch_y = batch_y[:, -self.args.pred_len:, f_dim:].to(self.device)
 
+        # outputs为我们预测出的值pred，而batch_y则是对应的真实值true
         return outputs, batch_y

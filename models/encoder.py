@@ -98,7 +98,7 @@ class Encoder(nn.Module):
                 x = conv_layer(x)  # conv_layer就是为了蒸馏操作啊，也即在Informer的Encoder层中，每层的维度是越往上越小的，每过一层都会除2
                 attns.append(attn)
             
-            # 由于一般attn_layer都要比conv_layer多一层，所以还要再用attn_layer[-1]额外做一次
+            # 由于一般attn_layer都要比conv_layer多一层（因为attn_layer层有e_layers个，而conv_layer层只有e_layers-1个），所以还要再用attn_layer[-1]额外做一次
             x, attn = self.attn_layers[-1](x, attn_mask=attn_mask)
             attns.append(attn)
         else:
@@ -106,6 +106,7 @@ class Encoder(nn.Module):
                 x, attn = attn_layer(x, attn_mask=attn_mask)
                 attns.append(attn)
 
+        # 最后再做一次norm，这里一般是要使用LayerNorm，而不是BatchNorm
         if self.norm is not None:
             x = self.norm(x)
 
