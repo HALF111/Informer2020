@@ -52,14 +52,18 @@ parser.add_argument('--patience', type=int, default=3, help='early stopping pati
 parser.add_argument('--learning_rate', type=float, default=0.0001, help='optimizer learning rate')
 parser.add_argument('--des', type=str, default='test',help='exp description')
 parser.add_argument('--loss', type=str, default='mse',help='loss function')  # 默认loss函数为“mse”
-parser.add_argument('--lradj', type=str, default='type1',help='adjust learning rate')  # 调整学习率
+parser.add_argument('--lradj', type=str, default='type1',help='adjust learning rate')  # 调整学习率，默认为type1（详见~/utils/tools.py介绍）
 parser.add_argument('--use_amp', action='store_true', help='use automatic mixed precision training', default=False)  # automatic mixed precision，也叫自动混合精度。和分布式有关？？？
 parser.add_argument('--inverse', action='store_true', help='inverse output data', default=False)  #反转输出结果？默认为False
 
 parser.add_argument('--use_gpu', type=bool, default=True, help='use gpu')
 parser.add_argument('--gpu', type=int, default=0, help='gpu')
 parser.add_argument('--use_multi_gpu', action='store_true', help='use multiple gpus', default=False)
-parser.add_argument('--devices', type=str, default='0,1,2,3',help='device ids of multile gpus')
+parser.add_argument('--devices', type=str, default='0,1,2,3', help='device ids of multile gpus')
+
+
+parser.add_argument('--test_train_num', type=int, default=1, help='how many samples to be trained during test')
+
 
 args = parser.parse_args()
 
@@ -104,27 +108,48 @@ print('Args in experiment:')
 print(args)
 
 
-Exp = Exp_Informer
-# Exp = Exp_Informer_Test
+# Exp = Exp_Informer
+Exp = Exp_Informer_Test
 
 for ii in range(args.itr):
+    print(f"-------Start iteration {ii+1}--------------------------")
+
     # setting record of experiments
-    setting = '{}_{}_ft{}_sl{}_ll{}_pl{}_dm{}_nh{}_el{}_dl{}_df{}_at{}_fc{}_eb{}_dt{}_mx{}_{}_{}'.format(
+    # 别忘记加上test_train_num一项！！！
+    setting = '{}_{}_ft{}_sl{}_ll{}_pl{}_dm{}_nh{}_el{}_dl{}_df{}_at{}_fc{}_eb{}_dt{}_mx{}_ttn{}_{}_{}'.format(
                 args.model, args.data, args.features, 
                 args.seq_len, args.label_len, args.pred_len,
                 args.d_model, args.n_heads, args.e_layers, args.d_layers, args.d_ff, args.attn, args.factor, 
-                args.embed, args.distil, args.mix, args.des, ii)
+                args.embed, args.distil, args.mix, args.test_train_num, args.des, ii)
 
     exp = Exp(args)  # set experiments
     
-    print('>>>>>>>start training : {}>>>>>>>>>>>>>>>>>>>>>>>>>>'.format(setting))
-    exp.train(setting)
+    # print('>>>>>>>start training : {}>>>>>>>>>>>>>>>>>>>>>>>>>>'.format(setting))
+    # exp.train(setting)
     
-    print('>>>>>>>testing : {}<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<'.format(setting))
-    exp.test(setting)
+
+    print('>>>>>>>normal testing : {}<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<'.format(setting))
+    exp.test(setting, test=1, flag="test")
+    
+    # print('>>>>>>>normal testing but batch_size is 1 : {}<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<'.format(setting))
+    # exp.test(setting, test=1, flag="test_with_batchsize_1")
+
+    # # 对整个模型进行fine-tuning
+    # print('>>>>>>>my testing with all parameters trained : {}<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<'.format(setting))
+    # exp.my_test(setting, is_training_part_params=False, use_adapted_model=True, test_train_epochs=3)
+
+    # 只对最后的全连接层projection层进行fine-tuning
+    print('>>>>>>>my testing with test-time training : {}<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<'.format(setting))
+    # exp.my_test(setting, is_training_part_params=True, use_adapted_model=True, test_train_epochs=1)
+    exp.my_test_vmap(setting, test=1, is_training_part_params=True, use_adapted_model=True, test_train_epochs=1)
+
+    # print('>>>>>>>my testing but with original model : {}<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<'.format(setting))
+    # exp.my_test(setting, is_training_part_params=True, use_adapted_model=False)
+
 
     if args.do_predict:
         print('>>>>>>>predicting : {}<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<'.format(setting))
         exp.predict(setting, True)
 
     torch.cuda.empty_cache()
+    print()

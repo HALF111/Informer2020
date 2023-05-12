@@ -180,7 +180,7 @@ class Exp_Informer(Exp_Basic):
                 
                 model_optim.zero_grad()  # 先梯度清零
                 pred, true = self._process_one_batch(
-                    train_data, batch_x, batch_y, batch_x_mark, batch_y_mark)  # 生成？？？
+                    train_data, batch_x, batch_y, batch_x_mark, batch_y_mark)  # 生成模型的预测值和实际的真实值
                 
                 # 计算在训练集熵的loss
                 loss = criterion(pred, true)  # 用MSE来计算loss
@@ -238,6 +238,8 @@ class Exp_Informer(Exp_Basic):
         
         preds = []
         trues = []
+
+        test_time_start = time.time()
         
         for i, (batch_x, batch_y, batch_x_mark, batch_y_mark) in enumerate(test_loader):
             pred, true = self._process_one_batch(
@@ -270,6 +272,8 @@ class Exp_Informer(Exp_Basic):
         np.save(folder_path+'metrics.npy', np.array([mae, mse, rmse, mape, mspe]))
         np.save(folder_path+'pred.npy', preds)
         np.save(folder_path+'true.npy', trues)
+
+        print(f"Test - cost time: {time.time() - test_time_start}s")
 
         return
 
