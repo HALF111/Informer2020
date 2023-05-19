@@ -1,0 +1,63 @@
+Args in experiment:
+Namespace(activation='gelu', adapted_batch_size=32, adapted_lr_times=1, attn='prob', batch_size=32, c_out=7, checkpoints='./checkpoints/', cols=None, d_ff=2048, d_layers=2, d_model=512, data='traffic', data_path='ETTh1.csv', dec_in=7, des='Exp', detail_freq='h', devices='0,1,2,3', distil=True, do_predict=False, dropout=0.05, e_layers=3, embed='timeF', enc_in=7, factor=5, features='M', freq='h', gpu=0, inverse=False, itr=1, label_len=168, learning_rate=0.0001, loss='mse', lradj='type1', mix=True, model='informer', n_heads=8, num_workers=0, output_attention=False, padding=0, patience=3, pred_len=720, root_path='./data/ETT/', run_test=True, run_train=True, s_layers=[3, 2, 1], seq_len=168, target='OT', test_train_epochs=1, test_train_num=10, train_epochs=6, use_amp=False, use_gpu=True, use_multi_gpu=False)
+-------Start iteration 1--------------------------
+Use GPU: cuda:0
+>>>>>>>start training : informer_traffic_ftM_sl168_ll168_pl720_dm512_nh8_el3_dl2_df2048_atprob_fc5_ebtimeF_dtTrue_mxTrue_Exp_0>>>>>>>>>>>>>>>>>>>>>>>>>>
+train 11307
+val 1023
+test 2765
+	iters: 100, epoch: 1 | loss: 0.6082568
+	speed: 0.1487s/iter; left time: 300.2775s
+	iters: 200, epoch: 1 | loss: 0.5115480
+	speed: 0.1526s/iter; left time: 292.9337s
+	iters: 300, epoch: 1 | loss: 0.5061106
+	speed: 0.1525s/iter; left time: 277.4328s
+Epoch: 1 cost time: 53.426185846328735
+Epoch: 1, Steps: 353 | Train Loss: 0.5662646 Vali Loss: 0.9701821 Test Loss: 1.2451284
+Validation loss decreased (inf --> 0.970182).  Saving model ...
+Updating learning rate to 0.0001
+	iters: 100, epoch: 2 | loss: 0.4783846
+	speed: 0.3235s/iter; left time: 538.9133s
+	iters: 200, epoch: 2 | loss: 0.4458092
+	speed: 0.1510s/iter; left time: 236.5216s
+	iters: 300, epoch: 2 | loss: 0.4367420
+	speed: 0.1505s/iter; left time: 220.6256s
+Epoch: 2 cost time: 53.1605429649353
+Epoch: 2, Steps: 353 | Train Loss: 0.4511156 Vali Loss: 1.0288137 Test Loss: 1.2830516
+EarlyStopping counter: 1 out of 3
+Updating learning rate to 5e-05
+	iters: 100, epoch: 3 | loss: 0.3553794
+	speed: 0.3223s/iter; left time: 423.1435s
+	iters: 200, epoch: 3 | loss: 0.4505580
+	speed: 0.1462s/iter; left time: 177.4006s
+	iters: 300, epoch: 3 | loss: 0.4215991
+	speed: 0.1508s/iter; left time: 167.8191s
+Epoch: 3 cost time: 52.73750448226929
+Epoch: 3, Steps: 353 | Train Loss: 0.4182329 Vali Loss: 1.0710227 Test Loss: 1.3070046
+EarlyStopping counter: 2 out of 3
+Updating learning rate to 2.5e-05
+	iters: 100, epoch: 4 | loss: 0.3944524
+	speed: 0.3194s/iter; left time: 306.6535s
+	iters: 200, epoch: 4 | loss: 0.4656187
+	speed: 0.1491s/iter; left time: 128.2460s
+	iters: 300, epoch: 4 | loss: 0.3646737
+	speed: 0.1495s/iter; left time: 113.6501s
+Epoch: 4 cost time: 52.794848918914795
+Epoch: 4, Steps: 353 | Train Loss: 0.4061813 Vali Loss: 1.0510318 Test Loss: 1.2936116
+EarlyStopping counter: 3 out of 3
+Early stopping
+>>>>>>>normal testing : informer_traffic_ftM_sl168_ll168_pl720_dm512_nh8_el3_dl2_df2048_atprob_fc5_ebtimeF_dtTrue_mxTrue_Exp_0<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+test 2765
+loading model from checkpoint !!!
+test shape: (86, 32, 720, 7) (86, 32, 720, 7)
+test shape: (2752, 720, 7) (2752, 720, 7)
+mse:1.245039939880371, mae:0.8305848836898804
+Test - cost time: 7.187267065048218s
+>>>>>>>my testing with test-time training : informer_traffic_ftM_sl168_ll168_pl720_dm512_nh8_el3_dl2_df2048_atprob_fc5_ebtimeF_dtTrue_mxTrue_Exp_0<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+test 2765
+loading model from checkpoint !!!
+test shape: (86, 32, 720, 7) (86, 32, 720, 7)
+test shape: (2752, 720, 7) (2752, 720, 7)
+mse:1.2356349229812622, mae:0.8333429098129272
+Test - cost time: 75.05504631996155s
+

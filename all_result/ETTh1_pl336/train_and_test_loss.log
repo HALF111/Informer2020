@@ -1,0 +1,71 @@
+Args in experiment:
+Namespace(activation='gelu', adapted_batch_size=32, adapted_lr_times=1, attn='prob', batch_size=32, c_out=7, checkpoints='./checkpoints/', cols=None, d_ff=2048, d_layers=1, d_model=512, data='ETTh1', data_path='ETTh1.csv', dec_in=7, des='Exp', detail_freq='h', devices='0,1,2,3', distil=True, do_predict=False, dropout=0.05, e_layers=2, embed='timeF', enc_in=7, factor=3, features='M', freq='h', gpu=1, inverse=False, itr=1, label_len=48, learning_rate=0.0001, loss='mse', lradj='type1', mix=True, model='informer', n_heads=8, num_workers=0, output_attention=False, padding=0, patience=3, pred_len=336, root_path='./data/ETT/', run_test=True, run_train=True, s_layers=[3, 2, 1], seq_len=48, target='OT', test_train_epochs=1, test_train_num=10, train_epochs=6, use_amp=False, use_gpu=True, use_multi_gpu=False)
+-------Start iteration 1--------------------------
+Use GPU: cuda:1
+>>>>>>>start training : informer_ETTh1_ftM_sl48_ll48_pl336_dm512_nh8_el2_dl1_df2048_atprob_fc3_ebtimeF_dtTrue_mxTrue_Exp_0>>>>>>>>>>>>>>>>>>>>>>>>>>
+train 8257
+val 2545
+test 2545
+	iters: 100, epoch: 1 | loss: 0.4767067
+	speed: 0.0456s/iter; left time: 66.0465s
+	iters: 200, epoch: 1 | loss: 0.5369548
+	speed: 0.0446s/iter; left time: 60.1241s
+Epoch: 1 cost time: 11.744227170944214
+Epoch: 1, Steps: 258 | Train Loss: 0.5657852 Vali Loss: 1.5883105 Test Loss: 1.0685649
+Validation loss decreased (inf --> 1.588310).  Saving model ...
+Updating learning rate to 0.0001
+	iters: 100, epoch: 2 | loss: 0.4248431
+	speed: 0.1067s/iter; left time: 127.0773s
+	iters: 200, epoch: 2 | loss: 0.5029888
+	speed: 0.0459s/iter; left time: 50.0920s
+Epoch: 2 cost time: 11.888457298278809
+Epoch: 2, Steps: 258 | Train Loss: 0.4868090 Vali Loss: 1.5640169 Test Loss: 1.3006798
+Validation loss decreased (1.588310 --> 1.564017).  Saving model ...
+Updating learning rate to 5e-05
+	iters: 100, epoch: 3 | loss: 0.4432844
+	speed: 0.1040s/iter; left time: 96.9931s
+	iters: 200, epoch: 3 | loss: 0.4486147
+	speed: 0.0463s/iter; left time: 38.5718s
+Epoch: 3 cost time: 12.06255578994751
+Epoch: 3, Steps: 258 | Train Loss: 0.4357841 Vali Loss: 1.5295539 Test Loss: 1.3728305
+Validation loss decreased (1.564017 --> 1.529554).  Saving model ...
+Updating learning rate to 2.5e-05
+	iters: 100, epoch: 4 | loss: 0.3788955
+	speed: 0.1021s/iter; left time: 68.8914s
+	iters: 200, epoch: 4 | loss: 0.3323493
+	speed: 0.0454s/iter; left time: 26.0818s
+Epoch: 4 cost time: 11.937315940856934
+Epoch: 4, Steps: 258 | Train Loss: 0.3605432 Vali Loss: 1.4156939 Test Loss: 1.3073913
+Validation loss decreased (1.529554 --> 1.415694).  Saving model ...
+Updating learning rate to 1.25e-05
+	iters: 100, epoch: 5 | loss: 0.3050246
+	speed: 0.0966s/iter; left time: 40.2886s
+	iters: 200, epoch: 5 | loss: 0.3214057
+	speed: 0.0469s/iter; left time: 14.8701s
+Epoch: 5 cost time: 11.935654878616333
+Epoch: 5, Steps: 258 | Train Loss: 0.3106498 Vali Loss: 1.3641915 Test Loss: 1.2915438
+Validation loss decreased (1.415694 --> 1.364192).  Saving model ...
+Updating learning rate to 6.25e-06
+	iters: 100, epoch: 6 | loss: 0.2771056
+	speed: 0.1040s/iter; left time: 16.5291s
+	iters: 200, epoch: 6 | loss: 0.2897281
+	speed: 0.0518s/iter; left time: 3.0556s
+Epoch: 6 cost time: 13.11982536315918
+Epoch: 6, Steps: 258 | Train Loss: 0.2965162 Vali Loss: 1.3426944 Test Loss: 1.2825280
+Validation loss decreased (1.364192 --> 1.342694).  Saving model ...
+Updating learning rate to 3.125e-06
+>>>>>>>normal testing : informer_ETTh1_ftM_sl48_ll48_pl336_dm512_nh8_el2_dl1_df2048_atprob_fc3_ebtimeF_dtTrue_mxTrue_Exp_0<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+test 2545
+loading model from checkpoint !!!
+test shape: (79, 32, 336, 7) (79, 32, 336, 7)
+test shape: (2528, 336, 7) (2528, 336, 7)
+mse:1.280882477760315, mae:0.9208048582077026
+Test - cost time: 1.9020450115203857s
+>>>>>>>my testing with test-time training : informer_ETTh1_ftM_sl48_ll48_pl336_dm512_nh8_el2_dl1_df2048_atprob_fc3_ebtimeF_dtTrue_mxTrue_Exp_0<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+test 2545
+loading model from checkpoint !!!
+test shape: (79, 32, 336, 7) (79, 32, 336, 7)
+test shape: (2528, 336, 7) (2528, 336, 7)
+mse:1.146500825881958, mae:0.8562859296798706
+Test - cost time: 19.663727521896362s
+

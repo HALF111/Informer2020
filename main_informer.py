@@ -62,8 +62,13 @@ parser.add_argument('--use_multi_gpu', action='store_true', help='use multiple g
 parser.add_argument('--devices', type=str, default='0,1,2,3', help='device ids of multile gpus')
 
 
-parser.add_argument('--test_train_num', type=int, default=1, help='how many samples to be trained during test')
-
+# test_train_num
+parser.add_argument('--test_train_num', type=int, default=10, help='how many samples to be trained during test')
+parser.add_argument('--adapted_lr_times', type=float, default=1, help='the times of lr during adapted')  # adaptation时的lr是原来的lr的几倍？
+parser.add_argument('--adapted_batch_size', type=int, default=32, help='the batch_size for adaptation use')  # adaptation时的数据集取的batch_size设置为多大
+parser.add_argument('--test_train_epochs', type=int, default=1, help='the batch_size for adaptation use')  # adaptation时的数据集取的batch_size设置为多大
+parser.add_argument('--run_train', action='store_true')
+parser.add_argument('--run_test', action='store_true')
 
 args = parser.parse_args()
 
@@ -116,20 +121,22 @@ for ii in range(args.itr):
 
     # setting record of experiments
     # 别忘记加上test_train_num一项！！！
-    setting = '{}_{}_ft{}_sl{}_ll{}_pl{}_dm{}_nh{}_el{}_dl{}_df{}_at{}_fc{}_eb{}_dt{}_mx{}_ttn{}_{}_{}'.format(
+    setting = '{}_{}_ft{}_sl{}_ll{}_pl{}_dm{}_nh{}_el{}_dl{}_df{}_at{}_fc{}_eb{}_dt{}_mx{}_{}_{}'.format(
                 args.model, args.data, args.features, 
                 args.seq_len, args.label_len, args.pred_len,
                 args.d_model, args.n_heads, args.e_layers, args.d_layers, args.d_ff, args.attn, args.factor, 
-                args.embed, args.distil, args.mix, args.test_train_num, args.des, ii)
+                args.embed, args.distil, args.mix, args.des, ii)
 
     exp = Exp(args)  # set experiments
     
-    # print('>>>>>>>start training : {}>>>>>>>>>>>>>>>>>>>>>>>>>>'.format(setting))
-    # exp.train(setting)
-    
+    if args.run_train:
+        print('>>>>>>>start training : {}>>>>>>>>>>>>>>>>>>>>>>>>>>'.format(setting))
+        exp.train(setting)
 
-    print('>>>>>>>normal testing : {}<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<'.format(setting))
-    exp.test(setting, test=1, flag="test")
+    if args.run_test:
+        print('>>>>>>>normal testing : {}<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<'.format(setting))
+        # exp.test(setting, flag="test")
+        exp.test(setting, test=1, flag="test")
     
     # print('>>>>>>>normal testing but batch_size is 1 : {}<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<'.format(setting))
     # exp.test(setting, test=1, flag="test_with_batchsize_1")
@@ -141,7 +148,7 @@ for ii in range(args.itr):
     # 只对最后的全连接层projection层进行fine-tuning
     print('>>>>>>>my testing with test-time training : {}<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<'.format(setting))
     # exp.my_test(setting, is_training_part_params=True, use_adapted_model=True, test_train_epochs=1)
-    exp.my_test_vmap(setting, test=1, is_training_part_params=True, use_adapted_model=True, test_train_epochs=1)
+    exp.my_test(setting, test=1, is_training_part_params=True, use_adapted_model=True, test_train_epochs=args.test_train_epochs)
 
     # print('>>>>>>>my testing but with original model : {}<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<'.format(setting))
     # exp.my_test(setting, is_training_part_params=True, use_adapted_model=False)

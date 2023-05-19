@@ -1,0 +1,47 @@
+Args in experiment:
+Namespace(activation='gelu', adapted_batch_size=32, adapted_lr_times=1, attn='prob', batch_size=32, c_out=7, checkpoints='./checkpoints/', cols=None, d_ff=2048, d_layers=1, d_model=512, data='national_illness', data_path='national_illness.csv', dec_in=7, des='Exp', detail_freq='h', devices='0,1,2,3', distil=True, do_predict=False, dropout=0.05, e_layers=2, embed='timeF', enc_in=7, factor=5, features='M', freq='h', gpu=1, inverse=False, itr=1, label_len=48, learning_rate=0.0001, loss='mse', lradj='type1', mix=True, model='informer', n_heads=8, num_workers=0, output_attention=False, padding=0, patience=3, pred_len=60, root_path='./data/ETT/', run_test=True, run_train=True, s_layers=[3, 2, 1], seq_len=96, target='OT', test_train_epochs=1, test_train_num=10, train_epochs=6, use_amp=False, use_gpu=True, use_multi_gpu=False)
+-------Start iteration 1--------------------------
+Use GPU: cuda:1
+>>>>>>>start training : informer_national_illness_ftM_sl96_ll48_pl60_dm512_nh8_el2_dl1_df2048_atprob_fc5_ebtimeF_dtTrue_mxTrue_Exp_0>>>>>>>>>>>>>>>>>>>>>>>>>>
+train 521
+val 38
+test 134
+Epoch: 1 cost time: 1.1519737243652344
+Epoch: 1, Steps: 16 | Train Loss: 0.8719653 Vali Loss: 0.6100605 Test Loss: 5.4746666
+Validation loss decreased (inf --> 0.610060).  Saving model ...
+Updating learning rate to 0.0001
+Epoch: 2 cost time: 1.0779659748077393
+Epoch: 2, Steps: 16 | Train Loss: 0.6820932 Vali Loss: 0.4541543 Test Loss: 5.7194600
+Validation loss decreased (0.610060 --> 0.454154).  Saving model ...
+Updating learning rate to 5e-05
+Epoch: 3 cost time: 1.0726211071014404
+Epoch: 3, Steps: 16 | Train Loss: 0.4996554 Vali Loss: 0.3531803 Test Loss: 4.7810593
+Validation loss decreased (0.454154 --> 0.353180).  Saving model ...
+Updating learning rate to 2.5e-05
+Epoch: 4 cost time: 1.085709810256958
+Epoch: 4, Steps: 16 | Train Loss: 0.4274796 Vali Loss: 0.2981588 Test Loss: 5.2942209
+Validation loss decreased (0.353180 --> 0.298159).  Saving model ...
+Updating learning rate to 1.25e-05
+Epoch: 5 cost time: 1.104175329208374
+Epoch: 5, Steps: 16 | Train Loss: 0.4025890 Vali Loss: 0.2626122 Test Loss: 5.1657128
+Validation loss decreased (0.298159 --> 0.262612).  Saving model ...
+Updating learning rate to 6.25e-06
+Epoch: 6 cost time: 1.1098041534423828
+Epoch: 6, Steps: 16 | Train Loss: 0.3823702 Vali Loss: 0.2715715 Test Loss: 5.4824276
+EarlyStopping counter: 1 out of 3
+Updating learning rate to 3.125e-06
+>>>>>>>normal testing : informer_national_illness_ftM_sl96_ll48_pl60_dm512_nh8_el2_dl1_df2048_atprob_fc5_ebtimeF_dtTrue_mxTrue_Exp_0<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+test 134
+loading model from checkpoint !!!
+test shape: (4, 32, 60, 7) (4, 32, 60, 7)
+test shape: (128, 60, 7) (128, 60, 7)
+mse:5.16646671295166, mae:1.5415151119232178
+Test - cost time: 0.06840062141418457s
+>>>>>>>my testing with test-time training : informer_national_illness_ftM_sl96_ll48_pl60_dm512_nh8_el2_dl1_df2048_atprob_fc5_ebtimeF_dtTrue_mxTrue_Exp_0<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+test 134
+loading model from checkpoint !!!
+test shape: (4, 32, 60, 7) (4, 32, 60, 7)
+test shape: (128, 60, 7) (128, 60, 7)
+mse:5.449676036834717, mae:1.647806167602539
+Test - cost time: 1.383582353591919s
+

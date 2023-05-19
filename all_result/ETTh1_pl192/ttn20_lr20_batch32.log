@@ -1,0 +1,12 @@
+Args in experiment:
+Namespace(activation='gelu', adapted_batch_size=32, adapted_lr_times=20.0, attn='prob', batch_size=32, c_out=7, checkpoints='./checkpoints/', cols=None, d_ff=2048, d_layers=1, d_model=512, data='ETTh1', data_path='ETTh1.csv', dec_in=7, des='Exp', detail_freq='h', devices='0,1,2,3', distil=True, do_predict=False, dropout=0.05, e_layers=2, embed='timeF', enc_in=7, factor=3, features='M', freq='h', gpu=1, inverse=False, itr=1, label_len=48, learning_rate=0.0001, loss='mse', lradj='type1', mix=True, model='informer', n_heads=8, num_workers=0, output_attention=False, padding=0, patience=3, pred_len=192, root_path='./data/ETT/', run_test=False, run_train=False, s_layers=[3, 2, 1], seq_len=48, target='OT', test_train_epochs=1, test_train_num=20, train_epochs=6, use_amp=False, use_gpu=True, use_multi_gpu=False)
+-------Start iteration 1--------------------------
+Use GPU: cuda:1
+>>>>>>>my testing with test-time training : informer_ETTh1_ftM_sl48_ll48_pl192_dm512_nh8_el2_dl1_df2048_atprob_fc3_ebtimeF_dtTrue_mxTrue_Exp_0<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+test 2689
+loading model from checkpoint !!!
+test shape: (84, 32, 192, 7) (84, 32, 192, 7)
+test shape: (2688, 192, 7) (2688, 192, 7)
+mse:0.5768957138061523, mae:0.5410997271537781
+Test - cost time: 26.7023606300354s
+

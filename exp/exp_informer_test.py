@@ -76,6 +76,10 @@ class Exp_Informer_Test(Exp_Basic):
             'ECL':Dataset_Custom,
             'Solar':Dataset_Custom,
             'custom':Dataset_Custom,
+
+            'exchange_rate': Dataset_Custom,
+            'traffic': Dataset_Custom,
+            'national_illness': Dataset_Custom,
         }
 
         # Data获取用于加载数据的dataset类
@@ -393,17 +397,37 @@ class Exp_Informer_Test(Exp_Basic):
                                 names.append(f"{n_m}.{n_p}")
 
 
-                model_optim = optim.Adam(params, lr=self.args.learning_rate*10 / (2**self.test_train_num))  # 使用Adam优化器
+                # Adam优化器
+                # model_optim = optim.Adam(params, lr=self.args.learning_rate*10 / (2**self.test_train_num))  # 使用Adam优化器
+                lr = self.args.learning_rate * self.args.adapted_lr_times
+                # model_optim_norm = optim.Adam(params_norm, lr=self.args.learning_rate*1000 / (2**self.test_train_num))  # 使用Adam优化器
+                
+                # 普通的SGD优化器？
+                model_optim = optim.SGD(params, lr=lr)
             else:
                 self.model.requires_grad_(True)
                 model_optim = optim.Adam(self.model.parameters(), lr=self.args.learning_rate*10 / (2**self.test_train_num))
 
 
             # 开始训练
-            cur_lr = self.args.learning_rate*10 / (2**self.test_train_num)
+            # cur_lr = self.args.learning_rate*10 / (2**self.test_train_num)
             for epoch in range(test_train_epochs):
-                cur_lr = self.args.learning_rate*10 / (2**self.test_train_num)
-                for ii in range(self.test_train_num):
+                # cur_lr = self.args.learning_rate*10 / (2**self.test_train_num)
+
+                import random
+                is_random = False
+                # is_random = True
+                sample_order_list = list(range(self.test_train_num))
+                # print("before random, sample_order_list is: ", sample_order_list)
+                if is_random:
+                    random.shuffle(sample_order_list)
+                    # print("after random, sample_order_list is: ", sample_order_list)
+                else:
+                    # print("do not use random.")
+                    pass
+
+
+                for ii in sample_order_list:
                     model_optim.zero_grad()
 
                     seq_len = self.args.seq_len
@@ -443,10 +467,10 @@ class Exp_Informer_Test(Exp_Basic):
                         loss.backward()
                         model_optim.step()
                     
-                    # cur_lr = cur_lr * 0.5
-                    cur_lr = cur_lr * 2
-                    for param_group in model_optim.param_groups:
-                        param_group['lr'] = cur_lr
+                    # # cur_lr = cur_lr * 0.5
+                    # cur_lr = cur_lr * 2
+                    # for param_group in model_optim.param_groups:
+                    #     param_group['lr'] = cur_lr
             
 
             # 完成test-time training，进入eval模式
@@ -620,123 +644,123 @@ class Exp_Informer_Test(Exp_Basic):
         return pred, true
 
     
-    def my_test_vmap(self, setting, test=0, is_training_part_params=True, use_adapted_model=True, test_train_epochs=1):
-        test_data, test_loader = self._get_data_at_test_time(flag='test')
-        if test:
-            print('loading model from checkpoint !!!')
-            self.model.load_state_dict(torch.load(os.path.join('./checkpoints/' + setting, 'checkpoint.pth'), map_location='cuda:0'))
+    # def my_test_vmap(self, setting, test=0, is_training_part_params=True, use_adapted_model=True, test_train_epochs=1):
+    #     test_data, test_loader = self._get_data_at_test_time(flag='test')
+    #     if test:
+    #         print('loading model from checkpoint !!!')
+    #         self.model.load_state_dict(torch.load(os.path.join('./checkpoints/' + setting, 'checkpoint.pth'), map_location='cuda:0'))
 
 
-        # test_data, test_loader = self._get_data(flag='test')
+    #     # test_data, test_loader = self._get_data(flag='test')
 
-        # path = os.path.join(self.args.checkpoints, setting)  # 在checkpoints目录下新建文件
-        # model_path = path + '/' + 'checkpoint.pth'
-        # self.model.load_state_dict(torch.load(model_path))
+    #     # path = os.path.join(self.args.checkpoints, setting)  # 在checkpoints目录下新建文件
+    #     # model_path = path + '/' + 'checkpoint.pth'
+    #     # self.model.load_state_dict(torch.load(model_path))
 
-        # 加载原模型，并设置成eval模式
-        # original_model = copy.deepcopy(self.model)
-        # original_model.eval()
+    #     # 加载原模型，并设置成eval模式
+    #     # original_model = copy.deepcopy(self.model)
+    #     # original_model.eval()
         
-        self.model.eval()
+    #     self.model.eval()
         
-        preds = []
-        trues = []
+    #     preds = []
+    #     trues = []
 
-        if self.args.use_amp:
-            scaler = torch.cuda.amp.GradScaler()  # 如果使用amp的话，还需要再生成一个scaler？
-        else:
-            scaler = None
+    #     if self.args.use_amp:
+    #         scaler = torch.cuda.amp.GradScaler()  # 如果使用amp的话，还需要再生成一个scaler？
+    #     else:
+    #         scaler = None
 
-        # model_optim = optim.Adam(self.model.parameters(), lr=self.args.learning_rate/10)  # 使用Adam优化器
-        criterion = nn.MSELoss()  # 使用MSELoss
-        test_time_start = time.time()
+    #     # model_optim = optim.Adam(self.model.parameters(), lr=self.args.learning_rate/10)  # 使用Adam优化器
+    #     criterion = nn.MSELoss()  # 使用MSELoss
+    #     test_time_start = time.time()
         
-        for i, (batch_x, batch_y, batch_x_mark, batch_y_mark) in enumerate(test_loader):
-            from functorch import vmap
-            # from functorch.experimental import replace_all_batch_norm_modules_
-            # replace_all_batch_norm_modules_(cur_model)
+    #     for i, (batch_x, batch_y, batch_x_mark, batch_y_mark) in enumerate(test_loader):
+    #         from functorch import vmap
+    #         # from functorch.experimental import replace_all_batch_norm_modules_
+    #         # replace_all_batch_norm_modules_(cur_model)
 
-            # 从self.model拷贝下来cur_model，并设置为train模式
-            cur_model = copy.deepcopy(self.model)
-            cur_model.train()
+    #         # 从self.model拷贝下来cur_model，并设置为train模式
+    #         cur_model = copy.deepcopy(self.model)
+    #         cur_model.train()
 
-            from functorch.experimental import replace_all_batch_norm_modules_
-            replace_all_batch_norm_modules_(cur_model)
+    #         from functorch.experimental import replace_all_batch_norm_modules_
+    #         replace_all_batch_norm_modules_(cur_model)
 
-            if is_training_part_params:
-                params = []
-                names = []
-                cur_model.requires_grad_(False)
-                for n_m, m in cur_model.named_modules():
-                    if "projection" == n_m:
-                        m.requires_grad_(True)
-                        for n_p, p in m.named_parameters():
-                            if n_p in ['weight', 'bias']:  # weight is scale, bias is shift
-                                params.append(p)
-                                names.append(f"{n_m}.{n_p}")
+    #         if is_training_part_params:
+    #             params = []
+    #             names = []
+    #             cur_model.requires_grad_(False)
+    #             for n_m, m in cur_model.named_modules():
+    #                 if "projection" == n_m:
+    #                     m.requires_grad_(True)
+    #                     for n_p, p in m.named_parameters():
+    #                         if n_p in ['weight', 'bias']:  # weight is scale, bias is shift
+    #                             params.append(p)
+    #                             names.append(f"{n_m}.{n_p}")
 
-                model_optim = optim.Adam(params, lr=self.args.learning_rate*10 / (2**self.test_train_num))  # 使用Adam优化器
-            else:
-                self.model.requires_grad_(True)
-                model_optim = optim.Adam(self.model.parameters(), lr=self.args.learning_rate*10 / (2**self.test_train_num))
+    #             model_optim = optim.Adam(params, lr=self.args.learning_rate*10 / (2**self.test_train_num))  # 使用Adam优化器
+    #         else:
+    #             self.model.requires_grad_(True)
+    #             model_optim = optim.Adam(self.model.parameters(), lr=self.args.learning_rate*10 / (2**self.test_train_num))
 
-            # model_optim = optim.Adam(self.model.parameters(), lr=self.args.learning_rate*10 / (2**self.test_train_num))
+    #         # model_optim = optim.Adam(self.model.parameters(), lr=self.args.learning_rate*10 / (2**self.test_train_num))
 
             
-            # 这里一定一定不要忘记要给tmp_batch_x到tmp_batch_y_mark四个tensor均做一次unsqueeze(1)，
-            # 否则后面做vmap的时候的维度会出现问题的
-            tmp_batch_x = batch_x.unsqueeze(1)
-            tmp_batch_x_mark = batch_x_mark.unsqueeze(1)
-            tmp_batch_y = batch_y.unsqueeze(1)
-            tmp_batch_y_mark = batch_y_mark.unsqueeze(1)
-            vmap_func = vmap(self.subprocess_of_my_test_vmap, 
-                             in_dims=(None, None, None, None, None,
-                                      0, 0, 0, 0,
-                                      None, None, None, None, None, None,
-                                      None, None),
-                             # out_dims=(0, 0), 
-                             randomness='different')
-            pred, true = vmap_func(
-                setting, is_training_part_params, use_adapted_model, test_train_epochs, test_data,
-                tmp_batch_x, tmp_batch_x_mark, tmp_batch_y, tmp_batch_y_mark,
-                test_time_start, criterion, scaler, i, preds, trues,
-                cur_model, model_optim)
+    #         # 这里一定一定不要忘记要给tmp_batch_x到tmp_batch_y_mark四个tensor均做一次unsqueeze(1)，
+    #         # 否则后面做vmap的时候的维度会出现问题的
+    #         tmp_batch_x = batch_x.unsqueeze(1)
+    #         tmp_batch_x_mark = batch_x_mark.unsqueeze(1)
+    #         tmp_batch_y = batch_y.unsqueeze(1)
+    #         tmp_batch_y_mark = batch_y_mark.unsqueeze(1)
+    #         vmap_func = vmap(self.subprocess_of_my_test_vmap, 
+    #                          in_dims=(None, None, None, None, None,
+    #                                   0, 0, 0, 0,
+    #                                   None, None, None, None, None, None,
+    #                                   None, None),
+    #                          # out_dims=(0, 0), 
+    #                          randomness='different')
+    #         pred, true = vmap_func(
+    #             setting, is_training_part_params, use_adapted_model, test_train_epochs, test_data,
+    #             tmp_batch_x, tmp_batch_x_mark, tmp_batch_y, tmp_batch_y_mark,
+    #             test_time_start, criterion, scaler, i, preds, trues,
+    #             cur_model, model_optim)
             
-            pred = pred[0]
-            true = true[0]
-            preds.append(pred.detach().cpu().numpy())
-            trues.append(true.detach().cpu().numpy())
+    #         pred = pred[0]
+    #         true = true[0]
+    #         preds.append(pred.detach().cpu().numpy())
+    #         trues.append(true.detach().cpu().numpy())
 
 
-        preds = np.array(preds)
-        trues = np.array(trues)
-        print('test shape:', preds.shape, trues.shape)
+    #     preds = np.array(preds)
+    #     trues = np.array(trues)
+    #     print('test shape:', preds.shape, trues.shape)
 
-        # 这一步是将preds和trues的前两维给合并成一维
-        preds = preds.reshape(-1, preds.shape[-2], preds.shape[-1])
-        trues = trues.reshape(-1, trues.shape[-2], trues.shape[-1])
-        print('test shape:', preds.shape, trues.shape)
+    #     # 这一步是将preds和trues的前两维给合并成一维
+    #     preds = preds.reshape(-1, preds.shape[-2], preds.shape[-1])
+    #     trues = trues.reshape(-1, trues.shape[-2], trues.shape[-1])
+    #     print('test shape:', preds.shape, trues.shape)
 
-        # result save
-        folder_path = './results/' + setting +'/'
-        if not os.path.exists(folder_path):
-            os.makedirs(folder_path)
+    #     # result save
+    #     folder_path = './results/' + setting +'/'
+    #     if not os.path.exists(folder_path):
+    #         os.makedirs(folder_path)
 
-        # 这里分别计算了mae、mse、rmse、mape、mspe等个参数，且全都是自己实现的，在metrics.py文件里面
-        # 而训练时采用的loss则是nn自带的MSELoss函数
-        # 我们这边计算MSE则是使用np.mean((pred-true)**2)
-        # 但实际上，这二者除了一个传入的是tensor、另一个传入的是np.array之外，并没有太大区别
-        # 然后我们自己实现的方法其实也正好对应于在nn.MSELoss中使用reduction = 'mean'的结果
-        mae, mse, rmse, mape, mspe = metric(preds, trues)
-        print('mse:{}, mae:{}'.format(mse, mae))
+    #     # 这里分别计算了mae、mse、rmse、mape、mspe等个参数，且全都是自己实现的，在metrics.py文件里面
+    #     # 而训练时采用的loss则是nn自带的MSELoss函数
+    #     # 我们这边计算MSE则是使用np.mean((pred-true)**2)
+    #     # 但实际上，这二者除了一个传入的是tensor、另一个传入的是np.array之外，并没有太大区别
+    #     # 然后我们自己实现的方法其实也正好对应于在nn.MSELoss中使用reduction = 'mean'的结果
+    #     mae, mse, rmse, mape, mspe = metric(preds, trues)
+    #     print('mse:{}, mae:{}'.format(mse, mae))
 
-        # np.save(folder_path+'metrics.npy', np.array([mae, mse, rmse, mape, mspe]))
-        # np.save(folder_path+'pred.npy', preds)
-        # np.save(folder_path+'true.npy', trues)
+    #     # np.save(folder_path+'metrics.npy', np.array([mae, mse, rmse, mape, mspe]))
+    #     # np.save(folder_path+'pred.npy', preds)
+    #     # np.save(folder_path+'true.npy', trues)
 
-        print(f"Test - cost time: {time.time() - test_time_start}s")
+    #     print(f"Test - cost time: {time.time() - test_time_start}s")
 
-        return
+    #     return
 
 
 
