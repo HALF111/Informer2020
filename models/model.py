@@ -25,6 +25,7 @@ class Informer(nn.Module):
         self.dec_embedding = DataEmbedding(dec_in, d_model, embed, freq, dropout)
 
         # Attention
+        # 一般是常见的FullAttention，本文改成了稀疏的attention
         Attn = ProbAttention if attn=='prob' else FullAttention
 
         # Encoder

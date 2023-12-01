@@ -16,7 +16,7 @@ class FullAttention(nn.Module):
         self.dropout = nn.Dropout(attention_dropout)
         
     def forward(self, queries, keys, values, attn_mask):
-        B, L, H, E = queries.shape  # 此时的维度为[32, 72, 8, 64] -> 本来应该是[32, 72, 512]，但是在AttetionLayer层中对head进行了提取
+        B, L, H, E = queries.shape  # 此时的维度为[32, 72, 8, 64] -> 本来应该是[32, 72, 512]，但是在AttetionLayer层中做了multi-head的多头、以及每个头里的降维操作
         _, S, _, D = values.shape  # 此时的维度为[32, 48, 8, 64] -> 这里的48是因为encoder中每经过一层长度就会减少一半，所以开始的86变成了现在的48
         scale = self.scale or 1./sqrt(E)
 
@@ -28,10 +28,11 @@ class FullAttention(nn.Module):
         if self.mask_flag:
             if attn_mask is None:
                 attn_mask = TriangularCausalMask(B, L, device=queries.device)
-
+            # 如果mask_flag为True，那么需要做个mask
             scores.masked_fill_(attn_mask.mask, -np.inf)
 
-        # 计算好Q和K的点积之后，先除以scale，再在最后一维上计算softmax，再经过一个dropout，便得到了注意力权重矩阵A
+        # 计算好Q和K的点积之后，先除以scale，再在最后一维上计算softmax，
+        # 再经过一个dropout，便得到了注意力权重矩阵A
         A = self.dropout(torch.softmax(scale * scores, dim=-1))
 
         # 然后再用注意力权重A和值values一起计算，得到最终的注意力值V
@@ -232,12 +233,14 @@ class AttentionLayer(nn.Module):
         _, S, _ = keys.shape  # S为keys或values的个数？
         H = self.n_heads  # H为多头注意力的head的个数
 
-        # 对各个输入分别作用Q、K、V三个权重参数矩阵之后，得到了queries、keys和values三个向量
+        # 将QKV映射到对应的d_q、d_k、d_v维度上，并映射h次
+        # 也即：对各个输入分别作用共h组的W^q、W^k、W^v三个权重参数后，得到了queries、keys和values三个向量
         # 然后将向量reshape为[bacth个数, 序列长度, head个数, d_keys或d_values]的一个四维的向量
         queries = self.query_projection(queries).view(B, L, H, -1)
         keys = self.key_projection(keys).view(B, S, H, -1)
         values = self.value_projection(values).view(B, S, H, -1)
 
+        # 计算得到注意力结果
         out, attn = self.inner_attention(
             queries,
             keys,
@@ -251,8 +254,8 @@ class AttentionLayer(nn.Module):
         # 计算完注意力后的out的大小为[B, L, H, D]，然后再做view之后就又把多个头的注意力合并回了；变成一个三维的[B, L, d_values * n_heads]了
         out = out.view(B, L, -1)
 
-        # 最后还要再过一个全连接层FCN
-        # 同时会将最后一维的d_values * n_heads维度重新映射回d_model？ 变成[B, L, d_model]了
+        # 最后还有一个线性层：将多个头的输出concat后，映射回d_model维度。
+        # 也即：将最后一维的d_values * n_heads维度重新映射回d_model？ 变成[B, L, d_model]了
         out = self.out_projection(out)
 
         return out, attn

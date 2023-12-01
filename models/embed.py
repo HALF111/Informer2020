@@ -4,6 +4,7 @@ import torch.nn.functional as F
 
 import math
 
+# 遵循Transformer的固定的位置编码
 class PositionalEmbedding(nn.Module):
     def __init__(self, d_model, max_len=5000):
         super(PositionalEmbedding, self).__init__()

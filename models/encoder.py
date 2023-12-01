@@ -15,6 +15,7 @@ class ConvLayer(nn.Module):
                                   padding_mode='circular')
         self.norm = nn.BatchNorm1d(c_in)
         self.activation = nn.ELU()
+        # 注意池化层的步长为2
         self.maxPool = nn.MaxPool1d(kernel_size=3, stride=2, padding=1)
 
     def forward(self, x):
@@ -23,6 +24,8 @@ class ConvLayer(nn.Module):
         x = self.activation(x)
         x = self.maxPool(x)  # 由于max_pool的stride=2，所以maxpool的步长为2，这会导致x中的原来的长度96会减少一半变成48了
         x = x.transpose(1,2)  # 后两维再交换回来
+        
+        # 假设输入为[B, L, D]，那么输出由于做了池化，会变成[B, L/2, D]
 
         return x
 
@@ -35,8 +38,10 @@ class EncoderLayer(nn.Module):
 
         self.attention = attention  # 传入的attention一般是一个AttentionLayer类的实例
 
+        # 从d_model到d_ff的一维卷积，后面再卷回来
         self.conv1 = nn.Conv1d(in_channels=d_model, out_channels=d_ff, kernel_size=1)
         self.conv2 = nn.Conv1d(in_channels=d_ff, out_channels=d_model, kernel_size=1)
+        # Transformer一般用LayerNorm
         self.norm1 = nn.LayerNorm(d_model)
         self.norm2 = nn.LayerNorm(d_model)
 
@@ -59,16 +64,15 @@ class EncoderLayer(nn.Module):
             x, x, x,
             attn_mask = attn_mask
         )
+        # 然后先dropout，再add（残差连接），再norm；也即第一个add & norm
         new_x = self.dropout(new_x)
-
-        # 这里相当于做第一个add & norm
         x = x + new_x
         x = self.norm1(x)
 
         # 然后下面也是做和transformer一样的positional-wise FFN，
         # 这其中包括两个全连接层和中间一个ReLU激活层，且全连接层的中间隐藏层维度为d_ff
-        # 不过这里用了kernel=1的conv卷积操作来替代全连接层了，但本质上二者是一样的，都是一个全连接/MLP
-        # PS：new_x、x和y的维度都是[32, 96, 512]
+        # 不过这里用了kernel=1的一维卷积、来替代全连接层了，但本质上二者是一样的，都是一个全连接/MLP
+        # PS：new_x、x和y的维度都是[32, 96, 512]，也即[B, L, D]
         y = x
         y = self.dropout(self.activation(self.conv1(y.transpose(-1,1))))  # 注意y.transpose(-1, 1)交换了后两维，变成了[32, 512, 96]
         y = self.dropout(self.conv2(y).transpose(-1,1))
@@ -94,8 +98,9 @@ class Encoder(nn.Module):
         if self.conv_layers is not None:
             # 将attn_layers和conv_layers两两结对，形成许多个pair，并会遍历这些pair。长度按照较短的那个来计算
             for attn_layer, conv_layer in zip(self.attn_layers, self.conv_layers):
-                x, attn = attn_layer(x, attn_mask=attn_mask)  # 经过attn_layer后，x的维度不变，仍然为[32, 96, 512]（但是随着层数向上，96这一维每过一层就会除2；会不断变成48，24，12……）
-                x = conv_layer(x)  # conv_layer就是为了蒸馏操作啊，也即在Informer的Encoder层中，每层的维度是越往上越小的，每过一层都会除2
+                # 如果有conv，那么一层注意力、一层卷积交替进行
+                x, attn = attn_layer(x, attn_mask=attn_mask)  # 经过attn_layer后，x的维度不变，仍然为[B,L,D]，也即[32, 96, 512]（但是随着层数向上，96这一维每过一层就会除2；会不断变成48，24，12……）
+                x = conv_layer(x)  # conv_layer就是为了蒸馏操作：也即在Informer的Encoder层中，每层的维度是越往上越小的，每过一层都会除2
                 attns.append(attn)
             
             # 由于一般attn_layer都要比conv_layer多一层（因为attn_layer层有e_layers个，而conv_layer层只有e_layers-1个），所以还要再用attn_layer[-1]额外做一次
@@ -103,10 +108,12 @@ class Encoder(nn.Module):
             attns.append(attn)
         else:
             for attn_layer in self.attn_layers:
+                # 没有conv的话，就只需要做注意力（里面已包含了FFN）即可了。
                 x, attn = attn_layer(x, attn_mask=attn_mask)
                 attns.append(attn)
 
         # 最后再做一次norm，这里一般是要使用LayerNorm，而不是BatchNorm
+        # PS：但是PatchTST里面用的就是BatchNorm1d(d_model)？？
         if self.norm is not None:
             x = self.norm(x)
 
@@ -121,6 +128,7 @@ class EncoderStack(nn.Module):
     def forward(self, x, attn_mask=None):
         # x [B, L, D]
         x_stack = []; attns = []
+        # 很多个encoder堆叠？
         for i_len, encoder in zip(self.inp_lens, self.encoders):
             inp_len = x.shape[1]//(2**i_len)
             x_s, attn = encoder(x[:, -inp_len:, :])
